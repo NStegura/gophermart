@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  accrual-api:
+    build:
+      context: .
+      dockerfile: DockerfileAccrual
+    restart: on-failure
+    working_dir: "$PWD"
+    depends_on:
+      - accrual-postgres
+    links:
+      - accrual-postgres
+    environment:
+      RUN_ADDRESS: 'accrual-api:8082'
+      DATABASE_URI: 'postgres://usr:psswrd@accrual-postgres:5432/accrual?sslmode=disable'
+    networks:
+      - app-network
+    volumes:
+      - "$PWD:$PWD"
+
+  accrual-postgres:
+    container_name: accrual-postgres
+    image: postgres:14.1-alpine
+    ports:
+      - "54323:5432"
+    environment:
+      POSTGRES_USER: 'usr'
+      POSTGRES_PASSWORD: 'psswrd'
+      POSTGRES_DB: 'accrual'
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
