@@ -9,7 +9,7 @@ endif
 .PHONY: bash
 bash:
 	make up
-	docker-compose exec accrual-api /bin/sh
+	docker-compose exec gophermart-api /bin/sh
 
 .PHONY: down
 down:
