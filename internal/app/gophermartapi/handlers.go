@@ -3,21 +3,30 @@ package gophermartapi
 import (
 	"encoding/json"
 	"errors"
+	"github.com/NStegura/gophermart/internal/app/gophermartapi/utils"
+	"io"
+	"net/http"
+	"strconv"
+
 	"github.com/NStegura/gophermart/internal/app/gophermartapi/models"
 	"github.com/NStegura/gophermart/internal/customerrors"
-	"net/http"
+)
+
+const (
+	complexityAlgorithm int64 = 30
 )
 
 func (s *APIServer) register() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var inputUser models.User
+		var token string
 
 		if err := json.NewDecoder(r.Body).Decode(&inputUser); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		salt := s.auth.GenerateUserSalt(30)
+		salt := s.auth.GenerateUserSalt(complexityAlgorithm)
 		newPass := s.auth.GeneratePasswordHash(inputUser.Password, salt)
 
 		uID, err := s.business.CreateUser(r.Context(), inputUser.Login, newPass, salt)
@@ -26,20 +35,25 @@ func (s *APIServer) register() http.HandlerFunc {
 				w.WriteHeader(http.StatusConflict)
 				return
 			}
-			s.logger.Debugln(err)
+			s.logger.Error(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		token, err := s.auth.GenerateToken(int64(uID))
+		token, err = s.auth.GenerateToken(uID)
+		if err != nil {
+			s.logger.Error(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		w.Header().Set("Authorization", token)
 		w.WriteHeader(http.StatusOK)
-		return
 	}
 }
 
 func (s *APIServer) login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var inputUser models.User
+		var token string
 
 		if err := json.NewDecoder(r.Body).Decode(&inputUser); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -58,16 +72,64 @@ func (s *APIServer) login() http.HandlerFunc {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		token, err := s.auth.GenerateToken(dbUser.ID)
+		token, err = s.auth.GenerateToken(dbUser.ID)
+		if err != nil {
+			s.logger.Error(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		w.Header().Set("Authorization", token)
 		w.WriteHeader(http.StatusOK)
-		return
 	}
 }
 
 func (s *APIServer) createOrder() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var orderUid int64
+		var userID int64
 
+		data, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			s.logger.Error(err)
+			return
+		}
+		defer func() {
+			_ = r.Body.Close()
+		}()
+
+		orderUid, err = strconv.ParseInt(string(data), 10, 64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if !utils.Valid(orderUid) {
+			http.Error(w, "invalid order format", http.StatusUnprocessableEntity)
+			return
+		}
+
+		userID, err = s.getUserID(r.Context())
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		if err = s.business.CreateOrder(r.Context(), userID, orderUid); err != nil {
+			if errors.Is(err, customerrors.ErrCurrUserUploaded) {
+				w.WriteHeader(http.StatusOK)
+				return
+			} else if errors.Is(err, customerrors.ErrAnotherUserUploaded) {
+				w.WriteHeader(http.StatusConflict)
+				return
+			} else {
+				s.logger.Error(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusAccepted)
+		return
 	}
 }
 

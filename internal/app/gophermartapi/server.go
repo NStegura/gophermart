@@ -11,9 +11,10 @@ import (
 )
 
 type APIServer struct {
-	address  string
-	business Business
-	auth     Auth
+	address     string
+	respTimeout time.Duration
+	business    Business
+	auth        Auth
 
 	router *chi.Mux
 
@@ -22,11 +23,12 @@ type APIServer struct {
 
 func New(address string, business Business, auth Auth, logger *logrus.Logger) *APIServer {
 	return &APIServer{
-		address:  address,
-		business: business,
-		auth:     auth,
-		router:   chi.NewRouter(),
-		logger:   logger,
+		address:     address,
+		respTimeout: time.Minute,
+		business:    business,
+		auth:        auth,
+		router:      chi.NewRouter(),
+		logger:      logger,
 	}
 }
 
@@ -45,7 +47,7 @@ func (s *APIServer) configRouter() {
 	s.router.Use(middleware.Logger)
 	s.router.Use(middleware.Recoverer)
 
-	s.router.Use(middleware.Timeout(60 * time.Second))
+	s.router.Use(middleware.Timeout(s.respTimeout))
 
 	s.router.Get(`/ping`, s.ping())
 
@@ -63,12 +65,13 @@ func (s *APIServer) authRouter(r chi.Router) {
 
 func (s *APIServer) apiRouter(r chi.Router) {
 	r.Use(s.authMiddleware)
+	r.Post(`/orders`, s.createOrder())
 	r.Get(`/check_auth`, s.ping())
 }
 
 func (s *APIServer) baseRouter(r chi.Router) {
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("root."))
+		_, _ = w.Write([]byte("root."))
 	})
 	r.Get("/panic", func(w http.ResponseWriter, r *http.Request) {
 		panic("test")

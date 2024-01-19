@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/NStegura/gophermart/internal/customerrors"
-	"github.com/NStegura/gophermart/internal/services/business/models"
 	"github.com/sirupsen/logrus"
+
+	"github.com/NStegura/gophermart/internal/customerrors"
+	dbModels "github.com/NStegura/gophermart/internal/repo/models"
+	domenModels "github.com/NStegura/gophermart/internal/services/business/models"
 )
 
 type Business struct {
@@ -26,10 +28,10 @@ func (b *Business) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (b *Business) CreateUser(ctx context.Context, login, password, salt string) (ID int64, err error) {
+func (b *Business) CreateUser(ctx context.Context, login, password, salt string) (id int64, err error) {
 	tx, err := b.repo.OpenTransaction(ctx)
 	if err != nil {
-		return ID, fmt.Errorf("failed to open transaction, %w", err)
+		return id, fmt.Errorf("failed to open transaction, %w", err)
 	}
 	defer func() {
 		_ = tx.Commit(ctx)
@@ -38,18 +40,18 @@ func (b *Business) CreateUser(ctx context.Context, login, password, salt string)
 	_, err = b.repo.GetUser(ctx, tx, login)
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
-			ID, err = b.repo.CreateUser(ctx, tx, login, password, salt)
+			id, err = b.repo.CreateUser(ctx, tx, login, password, salt)
 			if err != nil {
-				return ID, fmt.Errorf("failed to create user, %w", err)
+				return id, fmt.Errorf("failed to create user, %w", err)
 			}
 			return
 		}
-		return ID, fmt.Errorf("failed to get counter metric, %w", err)
+		return id, fmt.Errorf("failed to get user, %w", err)
 	}
-	return ID, customerrors.ErrAlreadyExists
+	return id, customerrors.ErrAlreadyExists
 }
 
-func (b *Business) GetUser(ctx context.Context, login string) (u models.User, err error) {
+func (b *Business) GetUser(ctx context.Context, login string) (u domenModels.User, err error) {
 	tx, err := b.repo.OpenTransaction(ctx)
 	if err != nil {
 		return u, fmt.Errorf("failed to open transaction, %w", err)
@@ -62,5 +64,33 @@ func (b *Business) GetUser(ctx context.Context, login string) (u models.User, er
 	if err != nil {
 		return u, fmt.Errorf("failed to create user, %w", err)
 	}
-	return models.User(dbUser), nil
+	return domenModels.User(dbUser), nil
+}
+
+func (b *Business) CreateOrder(ctx context.Context, userID, orderID int64) error {
+	var dbOrder dbModels.Order
+
+	tx, err := b.repo.OpenTransaction(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to open transaction, %w", err)
+	}
+	defer func() {
+		_ = tx.Commit(ctx)
+	}()
+
+	dbOrder, err = b.repo.GetOrder(ctx, tx, orderID)
+	if err != nil {
+		if errors.Is(err, customerrors.ErrNotFound) {
+			err = b.repo.CreateOrder(ctx, tx, userID, orderID)
+			if err != nil {
+				return fmt.Errorf("failed to create user, %w", err)
+			}
+			return nil
+		}
+		return fmt.Errorf("failed to get user, %w", err)
+	}
+	if dbOrder.UserID != userID {
+		return customerrors.ErrAnotherUserUploaded
+	}
+	return customerrors.ErrCurrUserUploaded
 }

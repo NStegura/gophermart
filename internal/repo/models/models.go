@@ -9,3 +9,10 @@ type User struct {
 	Salt      string
 	CreatedAt time.Time
 }
+
+type Order struct {
+	ID        int64
+	Status    string
+	UserID    int64
+	CreatedAt time.Time
+}

@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/NStegura/gophermart/internal/customerrors"
-	"github.com/NStegura/gophermart/internal/repo/models"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/sirupsen/logrus"
+
+	"github.com/NStegura/gophermart/internal/customerrors"
+	"github.com/NStegura/gophermart/internal/repo/models"
 )
 
 type DB struct {
@@ -66,7 +68,7 @@ func (db *DB) GetUser(ctx context.Context, tx pgx.Tx, login string) (u models.Us
 	return u, nil
 }
 
-func (db *DB) CreateUser(ctx context.Context, tx pgx.Tx, login, password, salt string) (ID int64, err error) {
+func (db *DB) CreateUser(ctx context.Context, tx pgx.Tx, login, password, salt string) (id int64, err error) {
 	const query = `
 		INSERT INTO "user" (login, password, salt)
 		VALUES ($1, $2, $3)
@@ -75,11 +77,54 @@ func (db *DB) CreateUser(ctx context.Context, tx pgx.Tx, login, password, salt s
 
 	err = tx.QueryRow(ctx, query,
 		login, password, salt,
-	).Scan(&ID)
+	).Scan(&id)
 
 	if err != nil {
-		return ID, fmt.Errorf("CreateUser failed, %w", err)
+		return id, fmt.Errorf("CreateUser failed, %w", err)
 	}
-	db.logger.Debugf("Create user, id, %v", ID)
+	db.logger.Debugf("Create user, id, %v", id)
+	return
+}
+
+func (db *DB) GetOrder(ctx context.Context, tx pgx.Tx, orderID int64) (o models.Order, err error) {
+	const query = `
+		SELECT o.id, o.status, o.user_id, o.created_at
+		FROM "order" o
+		WHERE o.id = $1; 
+	`
+	err = tx.QueryRow(ctx, query, orderID).Scan(
+		&o.ID,
+		&o.Status,
+		&o.UserID,
+		&o.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			err = customerrors.ErrNotFound
+			return
+		}
+		return o, fmt.Errorf("get user failed, %w", err)
+	}
+
+	return o, nil
+}
+
+func (db *DB) CreateOrder(ctx context.Context, tx pgx.Tx, userID, orderID int64) (err error) {
+	var id int64
+
+	const query = `
+		INSERT INTO "order" (id, status, user_id)
+		VALUES ($1, $2, $3)
+		RETURNING  "order".id; 
+	`
+
+	err = tx.QueryRow(ctx, query,
+		orderID, "NEW", userID,
+	).Scan(&id)
+
+	if err != nil {
+		return fmt.Errorf("CreateUser failed, %w", err)
+	}
+	db.logger.Debugf("Create order, id, %v", id)
 	return
 }

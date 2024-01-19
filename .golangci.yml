@@ -185,11 +185,6 @@ linters-settings:
       - -SA1014
       - -SA1028
 
-  govet:
-    disable:
-      - shadow
-    enable-all: true
-
   grouper:
     const-require-grouping: false
     const-require-single-const: false
@@ -384,7 +379,6 @@ linters:
     - goprintffuncname
     - gosec
     - gosimple
-    - govet
     - grouper
     - ineffassign
     - lll

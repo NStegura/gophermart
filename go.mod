@@ -5,6 +5,7 @@ go 1.21.3
 require (
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgx/v5 v5.5.2
 	github.com/pressly/goose/v3 v3.17.0
 	github.com/sirupsen/logrus v1.9.3

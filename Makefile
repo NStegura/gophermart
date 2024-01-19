@@ -46,7 +46,7 @@ fmt:
 
 .PHONY: lint
 lint:
-	golangci-lint run
+	golangci-lint run -c .golangci.yml --out-format=colored-line-number --sort-results
 
 .PHONY: lint-report
 lint-report: _golangci-lint-rm-unformatted-report

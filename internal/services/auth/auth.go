@@ -4,15 +4,16 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"math/rand"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/golang-jwt/jwt"
 )
 
 const (
-	tokenTtl = 72 * time.Hour
+	tokenTTL = 72 * time.Hour
 )
 
 type Service struct {
@@ -25,7 +26,7 @@ type Service struct {
 func New(secretKey string, logger *logrus.Logger) *Service {
 	return &Service{
 		secretKey: secretKey,
-		tokenTTL:  tokenTtl,
+		tokenTTL:  tokenTTL,
 		logger:    logger,
 	}
 }
@@ -35,7 +36,7 @@ type tokenClaims struct {
 	jwt.StandardClaims
 }
 
-func (s *Service) GenerateToken(userID int64) (string, error) {
+func (s *Service) GenerateToken(userID int64) (ss string, err error) {
 	claims := tokenClaims{
 		userID,
 		jwt.StandardClaims{
@@ -46,7 +47,11 @@ func (s *Service) GenerateToken(userID int64) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return token.SignedString([]byte(s.secretKey))
+	ss, err = token.SignedString([]byte(s.secretKey))
+	if err != nil {
+		return ss, fmt.Errorf("failed to signed string: %w", err)
+	}
+	return
 }
 
 func (s *Service) ParseToken(accessToken string) (int64, error) {
