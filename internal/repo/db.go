@@ -88,7 +88,7 @@ func (db *DB) CreateUser(ctx context.Context, tx pgx.Tx, login, password, salt s
 
 func (db *DB) GetOrder(ctx context.Context, tx pgx.Tx, orderID int64) (o models.Order, err error) {
 	const query = `
-		SELECT o.id, o.status, o.user_id, o.created_at
+		SELECT o.id, o.status, o.user_id, o.created_at, o.updated_at
 		FROM "order" o
 		WHERE o.id = $1; 
 	`
@@ -97,16 +97,54 @@ func (db *DB) GetOrder(ctx context.Context, tx pgx.Tx, orderID int64) (o models.
 		&o.Status,
 		&o.UserID,
 		&o.CreatedAt,
+		&o.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			err = customerrors.ErrNotFound
 			return
 		}
-		return o, fmt.Errorf("get user failed, %w", err)
+		return o, fmt.Errorf("get order failed, %w", err)
 	}
 
 	return o, nil
+}
+
+func (db *DB) GetOrders(ctx context.Context, tx pgx.Tx, userID int64) (orders []models.Order, err error) {
+	var rows pgx.Rows
+
+	const query = `
+		SELECT o.id, o.status, o.user_id, o.accrual, o.created_at, o.updated_at
+		FROM "order" o
+		WHERE o.user_id = $1; 
+	`
+	rows, err = tx.Query(ctx, query, userID)
+	if err != nil {
+		return orders, fmt.Errorf("get orders failed, %w", err)
+	}
+
+	for rows.Next() {
+		var o models.Order
+		err = rows.Scan(
+			&o.ID,
+			&o.Status,
+			&o.UserID,
+			&o.Accrual,
+			&o.CreatedAt,
+			&o.UpdatedAt,
+		)
+		if err != nil {
+			db.logger.Debug(err)
+			return orders, fmt.Errorf("get orders failed, %w", err)
+		}
+		db.logger.Debug(o)
+		orders = append(orders, o)
+	}
+	if err = rows.Err(); err != nil {
+		return orders, fmt.Errorf("get orders failed, %w", err)
+	}
+
+	return orders, nil
 }
 
 func (db *DB) CreateOrder(ctx context.Context, tx pgx.Tx, userID, orderID int64) (err error) {
@@ -119,7 +157,7 @@ func (db *DB) CreateOrder(ctx context.Context, tx pgx.Tx, userID, orderID int64)
 	`
 
 	err = tx.QueryRow(ctx, query,
-		orderID, "NEW", userID,
+		orderID, NEW.String(), userID,
 	).Scan(&id)
 
 	if err != nil {

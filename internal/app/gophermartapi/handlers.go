@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/NStegura/gophermart/internal/app/gophermartapi/utils"
+	domenModels "github.com/NStegura/gophermart/internal/services/business/models"
 	"io"
 	"net/http"
 	"strconv"
@@ -135,7 +136,32 @@ func (s *APIServer) createOrder() http.HandlerFunc {
 
 func (s *APIServer) getOrderList() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var orders []models.Order
+		var domenOrders []domenModels.Order
 
+		userID, err := s.getUserID(r.Context())
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		domenOrders, err = s.business.GetOrders(r.Context(), userID)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		s.logger.Debug(domenOrders)
+
+		for _, o := range domenOrders {
+			orders = append(orders, models.Order(o))
+		}
+
+		s.logger.Debug(orders)
+		if len(orders) == 0 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		s.writeJSONResp(orders, w)
 	}
 }
 

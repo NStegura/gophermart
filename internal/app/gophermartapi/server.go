@@ -1,6 +1,7 @@
 package gophermartapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -8,6 +9,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	contType string = "Content-Type"
 )
 
 type APIServer struct {
@@ -66,6 +71,7 @@ func (s *APIServer) authRouter(r chi.Router) {
 func (s *APIServer) apiRouter(r chi.Router) {
 	r.Use(s.authMiddleware)
 	r.Post(`/orders`, s.createOrder())
+	r.Get(`/orders`, s.getOrderList())
 	r.Get(`/check_auth`, s.ping())
 }
 
@@ -77,4 +83,18 @@ func (s *APIServer) baseRouter(r chi.Router) {
 		panic("test")
 	})
 	r.Get(`/ping`, s.ping())
+}
+
+func (s *APIServer) writeJSONResp(resp any, w http.ResponseWriter) {
+	w.Header().Set(contType, "application/json")
+
+	jsonResp, err := json.Marshal(resp)
+	if err != nil {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	if _, err = w.Write(jsonResp); err != nil {
+		s.logger.Error(err)
+	}
 }

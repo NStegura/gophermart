@@ -14,6 +14,7 @@ type Repository interface {
 	CreateUser(ctx context.Context, tx pgx.Tx, login, password, salt string) (id int64, err error)
 	GetUser(ctx context.Context, tx pgx.Tx, login string) (u models.User, err error)
 	GetOrder(ctx context.Context, tx pgx.Tx, orderID int64) (o models.Order, err error)
+	GetOrders(ctx context.Context, tx pgx.Tx, userID int64) (orders []models.Order, err error)
 	CreateOrder(ctx context.Context, tx pgx.Tx, userID, orderID int64) (err error)
 
 	OpenTransaction(ctx context.Context) (tx pgx.Tx, err error)

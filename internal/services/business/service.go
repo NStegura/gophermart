@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"time"
 
 	"github.com/NStegura/gophermart/internal/customerrors"
 	dbModels "github.com/NStegura/gophermart/internal/repo/models"
@@ -93,4 +94,33 @@ func (b *Business) CreateOrder(ctx context.Context, userID, orderID int64) error
 		return customerrors.ErrAnotherUserUploaded
 	}
 	return customerrors.ErrCurrUserUploaded
+}
+
+func (b *Business) GetOrders(ctx context.Context, userID int64) (orders []domenModels.Order, err error) {
+	tx, err := b.repo.OpenTransaction(ctx)
+	if err != nil {
+		return orders, fmt.Errorf("failed to open transaction, %w", err)
+	}
+	defer func() {
+		_ = tx.Commit(ctx)
+	}()
+
+	dbOrders, err := b.repo.GetOrders(ctx, tx, userID)
+	if err != nil {
+		return orders, fmt.Errorf("failed to create user, %w", err)
+	}
+	for _, dbOrder := range dbOrders {
+		var convertedUpdatedAt time.Time
+		convertedUpdatedAt, err = time.Parse(time.RFC3339, dbOrder.UpdatedAt.Format(time.RFC3339))
+		if err != nil {
+			return orders, fmt.Errorf("failed to convert UpdatedAt to RFC3339")
+		}
+		orders = append(orders, domenModels.Order{
+			Number:     dbOrder.ID,
+			Status:     dbOrder.Status,
+			Accrual:    dbOrder.Accrual.Float64,
+			UploadedAt: convertedUpdatedAt,
+		})
+	}
+	return orders, nil
 }
