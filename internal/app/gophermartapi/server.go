@@ -72,6 +72,10 @@ func (s *APIServer) apiRouter(r chi.Router) {
 	r.Use(s.authMiddleware)
 	r.Post(`/orders`, s.createOrder())
 	r.Get(`/orders`, s.getOrderList())
+	r.Get(`/balance`, s.getBalance())
+	r.Post(`/balance/withdraw`, s.createWithdraw())
+	r.Get(`/withdrawals`, s.getWithdrawals())
+
 	r.Get(`/check_auth`, s.ping())
 }
 
@@ -90,7 +94,7 @@ func (s *APIServer) writeJSONResp(resp any, w http.ResponseWriter) {
 
 	jsonResp, err := json.Marshal(resp)
 	if err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)

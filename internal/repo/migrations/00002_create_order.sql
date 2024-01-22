@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 
 BEGIN;
-CREATE TYPE status_type AS ENUM ('NEW', 'PROCmESSING', 'INVALID', 'PROCESSED');
+CREATE TYPE status_type AS ENUM ('NEW', 'PROCESSING', 'INVALID', 'PROCESSED');
 CREATE TABLE IF NOT EXISTS "order"
 (
     id          bigserial PRIMARY KEY,
@@ -12,8 +12,8 @@ CREATE TABLE IF NOT EXISTS "order"
     created_at  timestamp NOT NULL DEFAULT NOW(),
     updated_at  timestamp NOT NULL DEFAULT NOW(),
     CONSTRAINT FK_order_user FOREIGN KEY(user_id) REFERENCES "user"(id)
-                                                                ON DELETE RESTRICT
-                                                                ON UPDATE CASCADE
+                                                    ON DELETE RESTRICT
+                                                    ON UPDATE CASCADE
 );
 CREATE INDEX idx_created_at ON "order"(created_at);
 COMMIT;

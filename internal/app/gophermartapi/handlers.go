@@ -61,7 +61,7 @@ func (s *APIServer) login() http.HandlerFunc {
 			return
 		}
 
-		dbUser, err := s.business.GetUser(r.Context(), inputUser.Login)
+		dbUser, err := s.business.GetUserByLogin(r.Context(), inputUser.Login)
 		if err != nil {
 			if errors.Is(err, errors.New("doesnt exist")) {
 				w.WriteHeader(http.StatusUnauthorized)
@@ -86,10 +86,18 @@ func (s *APIServer) login() http.HandlerFunc {
 
 func (s *APIServer) createOrder() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var orderUid int64
-		var userID int64
+		var (
+			orderUid int64
+			data     []byte
+		)
 
-		data, err := io.ReadAll(r.Body)
+		userID, err := s.getUserID(r.Context())
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		data, err = io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			s.logger.Error(err)
@@ -107,12 +115,6 @@ func (s *APIServer) createOrder() http.HandlerFunc {
 
 		if !utils.Valid(orderUid) {
 			http.Error(w, "invalid order format", http.StatusUnprocessableEntity)
-			return
-		}
-
-		userID, err = s.getUserID(r.Context())
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
@@ -150,13 +152,11 @@ func (s *APIServer) getOrderList() http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		s.logger.Debug(domenOrders)
 
 		for _, o := range domenOrders {
 			orders = append(orders, models.Order(o))
 		}
 
-		s.logger.Debug(orders)
 		if len(orders) == 0 {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -167,19 +167,96 @@ func (s *APIServer) getOrderList() http.HandlerFunc {
 
 func (s *APIServer) getBalance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var domenUser domenModels.User
 
+		userID, err := s.getUserID(r.Context())
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		domenUser, err = s.business.GetUserByID(r.Context(), userID)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		s.writeJSONResp(models.Balance{
+			Current:   domenUser.Balance,
+			Withdrawn: domenUser.Withdrawn,
+		}, w)
 	}
 }
 
-func (s *APIServer) withdraw() http.HandlerFunc {
+func (s *APIServer) createWithdraw() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var (
+			orderUid int64
+			withdraw models.WithdrawIn
+		)
 
+		userID, err := s.getUserID(r.Context())
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		if err = json.NewDecoder(r.Body).Decode(&withdraw); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		orderUid, err = strconv.ParseInt(withdraw.Order, 10, 64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if !utils.Valid(orderUid) {
+			http.Error(w, "invalid order format", http.StatusUnprocessableEntity)
+			return
+		}
+
+		if err = s.business.CreateWithdraw(r.Context(), userID, orderUid, withdraw.Sum); err != nil {
+			if errors.Is(err, customerrors.ErrNotEnoughFunds) {
+				w.WriteHeader(http.StatusPaymentRequired)
+				return
+			}
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusAccepted)
+		return
 	}
 }
 
-func (s *APIServer) getWithdraws() http.HandlerFunc {
+func (s *APIServer) getWithdrawals() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var withdrawals []models.WithdrawOut
+		userID, err := s.getUserID(r.Context())
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 
+		domenWithdrawals, err := s.business.GetWithdrawals(r.Context(), userID)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		for _, wd := range domenWithdrawals {
+			withdrawals = append(withdrawals, models.WithdrawOut{
+				Order:       strconv.FormatInt(wd.OrderID, 10),
+				Sum:         wd.Sum,
+				ProcessedAt: wd.CreatedAt,
+			})
+		}
+
+		if len(withdrawals) == 0 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		s.writeJSONResp(withdrawals, w)
 	}
 }
 

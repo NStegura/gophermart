@@ -8,7 +8,10 @@ CREATE TABLE IF NOT EXISTS "user"
     login       TEXT UNIQUE,
     password    TEXT,
     salt        TEXT,
-    created_at  timestamp NOT NULL DEFAULT NOW()
+    balance     double precision NOT NULL DEFAULT 0,
+    withdrawn   double precision NOT NULL DEFAULT 0,
+    created_at  timestamp NOT NULL DEFAULT NOW(),
+    updated_at  timestamp NOT NULL DEFAULT NOW()
 );
 COMMIT;
 

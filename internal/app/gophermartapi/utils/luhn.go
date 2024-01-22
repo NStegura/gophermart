@@ -1,15 +1,5 @@
 package utils
 
-func CalculateLuhn(number int64) int64 {
-	checkNumber := checksum(number)
-
-	if checkNumber == 0 {
-		return 0
-	}
-	return 10 - checkNumber
-}
-
-// Valid check number is valid or not based on Luhn algorithm
 func Valid(number int64) bool {
 	return (number%10+checksum(number/10))%10 == 0
 }

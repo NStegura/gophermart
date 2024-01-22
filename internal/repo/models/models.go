@@ -10,6 +10,8 @@ type User struct {
 	Login     string
 	Password  string
 	Salt      string
+	Balance   float64
+	Withdrawn float64
 	CreatedAt time.Time
 }
 
@@ -20,4 +22,12 @@ type Order struct {
 	Accrual   sql.NullFloat64
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+type Withdraw struct {
+	ID        int64
+	OrderID   int64
+	UserID    int64
+	Sum       float64
+	CreatedAt time.Time
 }
