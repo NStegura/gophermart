@@ -8,7 +8,7 @@ type User struct {
 }
 
 type Order struct {
-	Number     int64     `json:"number"`
+	Number     int64     `json:"number,string"`
 	Status     string    `json:"status"`
 	Accrual    float64   `json:"accrual,omitempty"`
 	UploadedAt time.Time `json:"uploaded_at"`

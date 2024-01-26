@@ -68,7 +68,7 @@ func (c *Client) GetOrder(ctx context.Context, number int64) (models.OrderAccrua
 	}
 
 	reqURL := fmt.Sprintf("%s/api/orders/%v", c.URL, number)
-	c.logger.Info("Get order From accrual client, %s", reqURL)
+	c.logger.Infof("Get order From accrual client, %s", reqURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
 		c.logger.Error(err)
