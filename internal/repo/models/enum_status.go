@@ -1,4 +1,4 @@
-package repo
+package models
 
 type OrderStatus int
 

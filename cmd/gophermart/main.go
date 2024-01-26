@@ -11,6 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/NStegura/gophermart/internal/clients/accrual"
+	"github.com/NStegura/gophermart/internal/services/jobs/accrualsync"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/NStegura/gophermart/internal/app/gophermartapi"
@@ -21,6 +24,8 @@ import (
 
 const (
 	timeoutShutdown = time.Second * 10
+	rateLimit       = 5
+	frequency       = time.Duration(15) * time.Second
 )
 
 func configureLogger(config *gophermartapi.Config) (*logrus.Logger, error) {
@@ -83,6 +88,19 @@ func runRest() error {
 		logger,
 	)
 
+	accrualCli, err := accrual.New(config.AccrualAddr, logger)
+	if err != nil {
+		return fmt.Errorf("failed to init accrualCli: %w", err)
+	}
+
+	accrualJob := accrualsync.New(
+		frequency,
+		rateLimit,
+		db,
+		accrualCli,
+		logger,
+	)
+
 	componentsErrs := make(chan error, 1)
 	go func(errs chan<- error) {
 		if err = server.Start(); err != nil {
@@ -90,6 +108,12 @@ func runRest() error {
 				return
 			}
 			errs <- fmt.Errorf("listen and server has failed: %w", err)
+		}
+	}(componentsErrs)
+
+	go func(errs chan<- error) {
+		if err = accrualJob.Start(ctx); err != nil {
+			errs <- fmt.Errorf("accrualJob has failed: %w", err)
 		}
 	}(componentsErrs)
 

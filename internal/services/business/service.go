@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/NStegura/gophermart/internal/customerrors"
 	dbModels "github.com/NStegura/gophermart/internal/repo/models"
@@ -68,7 +69,7 @@ func (b *Business) GetUserByLogin(ctx context.Context, login string) (u domenMod
 	return domenModels.User(dbUser), nil
 }
 
-func (b *Business) GetUserByID(ctx context.Context, ID int64) (u domenModels.User, err error) {
+func (b *Business) GetUserByID(ctx context.Context, id int64) (u domenModels.User, err error) {
 	tx, err := b.repo.OpenTransaction(ctx)
 	if err != nil {
 		return u, fmt.Errorf("failed to open transaction, %w", err)
@@ -77,7 +78,7 @@ func (b *Business) GetUserByID(ctx context.Context, ID int64) (u domenModels.Use
 		_ = b.repo.Commit(ctx, tx)
 	}()
 
-	dbUser, err := b.repo.GetUserByID(ctx, tx, ID, false)
+	dbUser, err := b.repo.GetUserByID(ctx, tx, id, false)
 	if err != nil {
 		return u, fmt.Errorf("failed to get user, %w", err)
 	}
@@ -95,7 +96,7 @@ func (b *Business) CreateOrder(ctx context.Context, userID, orderID int64) error
 		_ = b.repo.Commit(ctx, tx)
 	}()
 
-	dbOrder, err = b.repo.GetOrder(ctx, tx, orderID)
+	dbOrder, err = b.repo.GetOrder(ctx, tx, orderID, false)
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
 			err = b.repo.CreateOrder(ctx, tx, userID, orderID)
@@ -157,7 +158,7 @@ func (b *Business) CreateWithdraw(ctx context.Context, userID int64, orderID int
 		return customerrors.ErrNotEnoughFunds
 	}
 
-	err = b.repo.UpdateUserBalance(ctx, tx, user.Balance-sum, user.Withdrawn+sum)
+	err = b.repo.UpdateUserBalance(ctx, tx, user.ID, user.Balance-sum, user.Withdrawn+sum)
 	if err != nil {
 		_ = b.repo.Rollback(ctx, tx)
 		return fmt.Errorf("failed to create withdraw, %w", err)

@@ -3,11 +3,12 @@ package gophermartapi
 import (
 	"encoding/json"
 	"errors"
-	"github.com/NStegura/gophermart/internal/app/gophermartapi/utils"
-	domenModels "github.com/NStegura/gophermart/internal/services/business/models"
 	"io"
 	"net/http"
 	"strconv"
+
+	"github.com/NStegura/gophermart/internal/app/gophermartapi/utils"
+	domenModels "github.com/NStegura/gophermart/internal/services/business/models"
 
 	"github.com/NStegura/gophermart/internal/app/gophermartapi/models"
 	"github.com/NStegura/gophermart/internal/customerrors"
@@ -87,7 +88,7 @@ func (s *APIServer) login() http.HandlerFunc {
 func (s *APIServer) createOrder() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
-			orderUid int64
+			orderUID int64
 			data     []byte
 		)
 
@@ -107,32 +108,32 @@ func (s *APIServer) createOrder() http.HandlerFunc {
 			_ = r.Body.Close()
 		}()
 
-		orderUid, err = strconv.ParseInt(string(data), 10, 64)
+		orderUID, err = strconv.ParseInt(string(data), 10, 64)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		if !utils.Valid(orderUid) {
+		if !utils.Valid(orderUID) {
 			http.Error(w, "invalid order format", http.StatusUnprocessableEntity)
 			return
 		}
 
-		if err = s.business.CreateOrder(r.Context(), userID, orderUid); err != nil {
-			if errors.Is(err, customerrors.ErrCurrUserUploaded) {
+		if err = s.business.CreateOrder(r.Context(), userID, orderUID); err != nil {
+			switch {
+			case errors.Is(err, customerrors.ErrCurrUserUploaded):
 				w.WriteHeader(http.StatusOK)
 				return
-			} else if errors.Is(err, customerrors.ErrAnotherUserUploaded) {
+			case errors.Is(err, customerrors.ErrAnotherUserUploaded):
 				w.WriteHeader(http.StatusConflict)
 				return
-			} else {
+			default:
 				s.logger.Error(err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 		}
 		w.WriteHeader(http.StatusAccepted)
-		return
 	}
 }
 
@@ -191,7 +192,7 @@ func (s *APIServer) getBalance() http.HandlerFunc {
 func (s *APIServer) createWithdraw() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
-			orderUid int64
+			orderUID int64
 			withdraw models.WithdrawIn
 		)
 
@@ -205,18 +206,18 @@ func (s *APIServer) createWithdraw() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		orderUid, err = strconv.ParseInt(withdraw.Order, 10, 64)
+		orderUID, err = strconv.ParseInt(withdraw.Order, 10, 64)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		if !utils.Valid(orderUid) {
+		if !utils.Valid(orderUID) {
 			http.Error(w, "invalid order format", http.StatusUnprocessableEntity)
 			return
 		}
 
-		if err = s.business.CreateWithdraw(r.Context(), userID, orderUid, withdraw.Sum); err != nil {
+		if err = s.business.CreateWithdraw(r.Context(), userID, orderUID, withdraw.Sum); err != nil {
 			if errors.Is(err, customerrors.ErrNotEnoughFunds) {
 				w.WriteHeader(http.StatusPaymentRequired)
 				return
@@ -225,7 +226,6 @@ func (s *APIServer) createWithdraw() http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusAccepted)
-		return
 	}
 }
 
@@ -261,9 +261,7 @@ func (s *APIServer) getWithdrawals() http.HandlerFunc {
 }
 
 func (s *APIServer) getOrderPaginateList() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-	}
+	return func(w http.ResponseWriter, r *http.Request) {}
 }
 
 func (s *APIServer) ping() http.HandlerFunc {

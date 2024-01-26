@@ -71,7 +71,7 @@ func (db *DB) GetUserByLogin(ctx context.Context, tx pgx.Tx, login string) (u mo
 	return u, nil
 }
 
-func (db *DB) GetUserByID(ctx context.Context, tx pgx.Tx, ID int64, forUpdate bool) (u models.User, err error) {
+func (db *DB) GetUserByID(ctx context.Context, tx pgx.Tx, id int64, forUpdate bool) (u models.User, err error) {
 	var query string
 	if forUpdate {
 		query = `
@@ -88,7 +88,7 @@ func (db *DB) GetUserByID(ctx context.Context, tx pgx.Tx, ID int64, forUpdate bo
 	`
 	}
 
-	err = tx.QueryRow(ctx, query, ID).Scan(
+	err = tx.QueryRow(ctx, query, id).Scan(
 		&u.ID,
 		&u.Login,
 		&u.Password,
@@ -126,11 +126,12 @@ func (db *DB) CreateUser(ctx context.Context, tx pgx.Tx, login, password, salt s
 	return
 }
 
-func (db *DB) UpdateUserBalance(ctx context.Context, tx pgx.Tx, balance, withdrawn float64) (err error) {
+func (db *DB) UpdateUserBalance(ctx context.Context, tx pgx.Tx, userID int64, balance, withdrawn float64) (err error) {
 	var id int64
 	const query = `
 		UPDATE "user"
 		SET balance = $1, withdrawn = $2, updated_at = $3
+		WHERE "user".id = $4
 		RETURNING  "user".id; 
 	`
 
@@ -138,6 +139,7 @@ func (db *DB) UpdateUserBalance(ctx context.Context, tx pgx.Tx, balance, withdra
 		balance,
 		withdrawn,
 		time.Now(),
+		userID,
 	).Scan(&id)
 
 	if err != nil {
@@ -147,12 +149,22 @@ func (db *DB) UpdateUserBalance(ctx context.Context, tx pgx.Tx, balance, withdra
 	return
 }
 
-func (db *DB) GetOrder(ctx context.Context, tx pgx.Tx, orderID int64) (o models.Order, err error) {
-	const query = `
+func (db *DB) GetOrder(ctx context.Context, tx pgx.Tx, orderID int64, forUpdate bool) (o models.Order, err error) {
+	var query string
+	if forUpdate {
+		query = `
+		SELECT o.id, o.status, o.user_id, o.created_at, o.updated_at
+		FROM "order" o
+		WHERE o.id = $1
+		FOR UPDATE; 
+	`
+	} else {
+		query = `
 		SELECT o.id, o.status, o.user_id, o.created_at, o.updated_at
 		FROM "order" o
 		WHERE o.id = $1; 
 	`
+	}
 	err = tx.QueryRow(ctx, query, orderID).Scan(
 		&o.ID,
 		&o.Status,
@@ -169,6 +181,28 @@ func (db *DB) GetOrder(ctx context.Context, tx pgx.Tx, orderID int64) (o models.
 	}
 
 	return o, nil
+}
+
+func (db *DB) UpdateOrder(ctx context.Context, tx pgx.Tx, orderID int64, accrual float64, status string) (err error) {
+	var id int64
+	const query = `
+		UPDATE "order"
+		SET accrual = $1, status = $2
+		WHERE "order".id = $3
+		RETURNING  "order".id; 
+	`
+
+	err = tx.QueryRow(ctx, query,
+		accrual,
+		status,
+		orderID,
+	).Scan(&id)
+
+	if err != nil {
+		return fmt.Errorf("UpdateOrder failed, %w", err)
+	}
+	db.logger.Debugf("UpdateOrder, id, %v", id)
+	return
 }
 
 func (db *DB) GetOrders(ctx context.Context, tx pgx.Tx, userID int64) (orders []models.Order, err error) {
@@ -209,6 +243,44 @@ func (db *DB) GetOrders(ctx context.Context, tx pgx.Tx, userID int64) (orders []
 	return orders, nil
 }
 
+func (db *DB) GetNotProcessedOrders(ctx context.Context, tx pgx.Tx) (orders []models.Order, err error) {
+	var rows pgx.Rows
+
+	const query = `
+		SELECT o.id, o.status, o.user_id, o.accrual, o.created_at, o.updated_at
+		FROM "order" o
+		WHERE o.status in ('PROCESSING', 'NEW')
+		ORDER BY o.created_at;
+	`
+	rows, err = tx.Query(ctx, query)
+	if err != nil {
+		return orders, fmt.Errorf("get orders failed, %w", err)
+	}
+
+	for rows.Next() {
+		var o models.Order
+		err = rows.Scan(
+			&o.ID,
+			&o.Status,
+			&o.UserID,
+			&o.Accrual,
+			&o.CreatedAt,
+			&o.UpdatedAt,
+		)
+		if err != nil {
+			db.logger.Debug(err)
+			return orders, fmt.Errorf("get orders failed, %w", err)
+		}
+		db.logger.Debug(o)
+		orders = append(orders, o)
+	}
+	if err = rows.Err(); err != nil {
+		return orders, fmt.Errorf("get orders failed, %w", err)
+	}
+
+	return orders, nil
+}
+
 func (db *DB) CreateOrder(ctx context.Context, tx pgx.Tx, userID, orderID int64) (err error) {
 	var id int64
 
@@ -219,7 +291,7 @@ func (db *DB) CreateOrder(ctx context.Context, tx pgx.Tx, userID, orderID int64)
 	`
 
 	err = tx.QueryRow(ctx, query,
-		orderID, NEW.String(), userID,
+		orderID, models.NEW.String(), userID,
 	).Scan(&id)
 
 	if err != nil {

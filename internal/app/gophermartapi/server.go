@@ -72,6 +72,7 @@ func (s *APIServer) apiRouter(r chi.Router) {
 	r.Use(s.authMiddleware)
 	r.Post(`/orders`, s.createOrder())
 	r.Get(`/orders`, s.getOrderList())
+	r.Get(`/orders/paginate`, s.getOrderPaginateList())
 	r.Get(`/balance`, s.getBalance())
 	r.Post(`/balance/withdraw`, s.createWithdraw())
 	r.Get(`/withdrawals`, s.getWithdrawals())
