@@ -225,7 +225,7 @@ func (s *APIServer) createWithdraw() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		w.WriteHeader(http.StatusAccepted)
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
