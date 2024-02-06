@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS "order"
     id          bigserial PRIMARY KEY,
     status      status_type NOT NULL DEFAULT 'NEW',
     user_id     bigint NOT NULL,
-    accrual     double precision,
+    accrual     double precision NULL,
     created_at  timestamp NOT NULL DEFAULT NOW(),
     updated_at  timestamp NOT NULL DEFAULT NOW(),
     CONSTRAINT FK_order_user FOREIGN KEY(user_id) REFERENCES "user"(id)

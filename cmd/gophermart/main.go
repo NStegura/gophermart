@@ -56,7 +56,7 @@ func runRest() error {
 
 	db, err := repo.New(
 		ctx,
-		config.DatabaseURI,
+		config.DatabaseDSN,
 		logger,
 	)
 	if err != nil {

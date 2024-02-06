@@ -44,19 +44,6 @@ func New(
 	}, nil
 }
 
-type RequestError struct {
-	URL        *url.URL
-	Body       []byte
-	StatusCode int
-}
-
-func (e RequestError) Error() string {
-	return fmt.Sprintf(
-		"Metric request error: url=%s, code=%v, body=%s",
-		e.URL, e.StatusCode, e.Body,
-	)
-}
-
 func (c *Client) GetOrder(ctx context.Context, number int64) (models.OrderAccrual, error) {
 	var orderAccrual models.OrderAccrual
 

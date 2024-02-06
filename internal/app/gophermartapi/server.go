@@ -81,12 +81,6 @@ func (s *APIServer) apiRouter(r chi.Router) {
 }
 
 func (s *APIServer) baseRouter(r chi.Router) {
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte("root."))
-	})
-	r.Get("/panic", func(w http.ResponseWriter, r *http.Request) {
-		panic("test")
-	})
 	r.Get(`/ping`, s.ping())
 }
 

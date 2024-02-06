@@ -5,9 +5,9 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS "user"
 (
     id          bigserial PRIMARY KEY,
-    login       TEXT UNIQUE,
-    password    TEXT,
-    salt        TEXT,
+    login       TEXT UNIQUE NOT NULL,
+    password    TEXT NOT NULL,
+    salt        TEXT NOT NULL,
     balance     double precision NOT NULL DEFAULT 0,
     withdrawn   double precision NOT NULL DEFAULT 0,
     created_at  timestamp NOT NULL DEFAULT NOW(),

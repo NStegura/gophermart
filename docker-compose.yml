@@ -4,7 +4,7 @@ services:
   accrual-api:
     build:
       context: .
-      dockerfile: DockerfileAccrual
+      dockerfile: accrual.dockerfile
     restart: on-failure
     ports:
       - '8082:8082'
@@ -19,7 +19,7 @@ services:
   gophermart-api:
     build:
       context: .
-      dockerfile: DockerfileGophermart
+      dockerfile: gophermart.dockerfile
     command: tail -f /dev/null
     restart: on-failure
     ports:

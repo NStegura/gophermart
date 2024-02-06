@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-type CtxUserID struct{}
+type ctxUserID struct{}
 
 const (
 	authHeader = "Authorization"
@@ -28,14 +28,14 @@ func (s *APIServer) authMiddleware(h http.Handler) http.Handler {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		ctx := context.WithValue(r.Context(), CtxUserID{}, userID)
+		ctx := context.WithValue(r.Context(), ctxUserID{}, userID)
 		s.logger.Debugf("Authorize USER.ID=%v", userID)
 		h.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
 func (s *APIServer) getUserID(ctx context.Context) (int64, error) {
-	userID, ok := ctx.Value(CtxUserID{}).(int64)
+	userID, ok := ctx.Value(ctxUserID{}).(int64)
 	if !ok {
 		s.logger.Warning("user id not found in context")
 		return 0, fmt.Errorf("user id not found in context")

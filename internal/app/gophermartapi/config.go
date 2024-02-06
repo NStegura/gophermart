@@ -7,7 +7,7 @@ import (
 
 const (
 	defaultServerAddr  = ":8080"
-	defaultDatabaseURI = ""
+	defaultDatabaseDSN = ""
 	defaultLogLevel    = "debug"
 	defaultAccrualAddr = "accrual-api:8082"
 	defaultSecretKey   = "gljfsj;312sf;kdhrf;" // ?????? very bad
@@ -15,7 +15,7 @@ const (
 
 type Config struct {
 	RunAddress  string
-	DatabaseURI string
+	DatabaseDSN string
 	SecretKey   string
 	LogLevel    string
 	AccrualAddr string
@@ -24,7 +24,7 @@ type Config struct {
 func NewConfig() *Config {
 	return &Config{
 		RunAddress:  defaultServerAddr,
-		DatabaseURI: defaultDatabaseURI,
+		DatabaseDSN: defaultDatabaseDSN,
 		SecretKey:   defaultSecretKey,
 		AccrualAddr: defaultAccrualAddr,
 		LogLevel:    defaultLogLevel,
@@ -34,7 +34,7 @@ func NewConfig() *Config {
 func (c *Config) ParseFlags() (err error) {
 	var (
 		runAddress  = defaultServerAddr
-		databaseURI = defaultDatabaseURI
+		DatabaseDSN = defaultDatabaseDSN
 		accrualAddr = defaultAccrualAddr
 		secretKey   = defaultSecretKey
 	)
@@ -44,7 +44,7 @@ func (c *Config) ParseFlags() (err error) {
 	}
 
 	if dbDsn, ok := os.LookupEnv("DATABASE_URI"); ok {
-		databaseURI = dbDsn
+		DatabaseDSN = dbDsn
 	}
 
 	if envLogLevel, ok := os.LookupEnv("LOG_LEVEL"); ok {
@@ -60,7 +60,7 @@ func (c *Config) ParseFlags() (err error) {
 	}
 
 	flag.StringVar(&c.RunAddress, "a", runAddress, "address and port to run server")
-	flag.StringVar(&c.DatabaseURI, "d", databaseURI, "database dsn")
+	flag.StringVar(&c.DatabaseDSN, "d", DatabaseDSN, "database dsn")
 	flag.StringVar(&c.AccrualAddr, "r", accrualAddr, "address and port accrual cli")
 	flag.StringVar(&c.SecretKey, "s", secretKey, "secret key to hash auth")
 	flag.Parse()
