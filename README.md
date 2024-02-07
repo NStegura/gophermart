@@ -7,6 +7,9 @@
 ### Database scheme
 ![](media/db-scheme.png)
 
+### Swagger scheme
+![](media/swagger.png)
+
 ### Структура кода
 - cmd/
     - accrual/accrual_linux_amd64 - запуск сервиса accrual

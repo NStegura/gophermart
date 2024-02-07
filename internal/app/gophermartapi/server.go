@@ -3,12 +3,16 @@ package gophermartapi
 import (
 	"encoding/json"
 	"fmt"
+
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sirupsen/logrus"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
+
+	_ "github.com/NStegura/gophermart/docs"
 )
 
 const (
@@ -37,6 +41,16 @@ func New(address string, business Business, auth Auth, logger *logrus.Logger) *A
 	}
 }
 
+// Start godoc
+//
+//	@title						Gophermart API
+//	@version					1.0
+//	@description				This is a Gophermart server.
+//	@BasePath					/
+//
+//	@securityDefinitions.apikey	ApiKeyAuth
+//	@in							header
+//	@name						Authorization
 func (s *APIServer) Start() error {
 	s.configRouter()
 
@@ -76,11 +90,10 @@ func (s *APIServer) apiRouter(r chi.Router) {
 	r.Get(`/balance`, s.getBalance())
 	r.Post(`/balance/withdraw`, s.createWithdraw())
 	r.Get(`/withdrawals`, s.getWithdrawals())
-
-	r.Get(`/check_auth`, s.ping())
 }
 
 func (s *APIServer) baseRouter(r chi.Router) {
+	r.Mount("/swagger", httpSwagger.WrapHandler)
 	r.Get(`/ping`, s.ping())
 }
 

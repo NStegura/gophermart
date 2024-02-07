@@ -18,6 +18,19 @@ const (
 	complexityAlgorithm int64 = 30
 )
 
+// register godoc
+//
+//	@Summary		Register
+//	@Description	register
+//	@Tags			auth
+//	@Accept			json
+//	@Param			data	body	models.User	true	"User data"
+//	@Success		200
+//	@Header			200	{string}	Authorization	"Use this header in other endpoints"
+//	@Failure		409
+//	@Failure		400
+//	@Failure		500
+//	@Router			/api/user/register [post]
 func (s *APIServer) register() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var inputUser models.User
@@ -52,6 +65,19 @@ func (s *APIServer) register() http.HandlerFunc {
 	}
 }
 
+// login godoc
+//
+//	@Summary		Login
+//	@Description	login
+//	@Tags			auth
+//	@Accept			json
+//	@Param			data	body	models.User	true	"User data"
+//	@Success		200
+//	@Header			200	{string}	Authorization	"Use this header in other endpoints"
+//	@Failure		400
+//	@Failure		401
+//	@Failure		500
+//	@Router			/api/user/login [post]
 func (s *APIServer) login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var inputUser models.User
@@ -85,6 +111,22 @@ func (s *APIServer) login() http.HandlerFunc {
 	}
 }
 
+// createOrder godoc
+//
+//	@Summary		Create order
+//	@Description	"register" user order
+//	@Tags			user
+//	@Accept			plain
+//	@Param			string	body	string	true	"Order id"
+//	@Success		200
+//	@Success		202
+//	@Failure		400
+//	@Failure		401
+//	@Failure		409
+//	@Failure		422
+//	@Failure		500
+//	@Security		ApiKeyAuth
+//	@Router			/api/user/orders [post]
 func (s *APIServer) createOrder() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
@@ -137,6 +179,18 @@ func (s *APIServer) createOrder() http.HandlerFunc {
 	}
 }
 
+// getOrderList godoc
+//
+//	@Summary		Get order list
+//	@Description	get order list by user
+//	@Tags			user
+//	@Produce		json
+//	@Success		200	{array}	models.Order
+//	@Failure		204
+//	@Failure		401
+//	@Failure		500
+//	@Security		ApiKeyAuth
+//	@Router			/api/user/orders [get]
 func (s *APIServer) getOrderList() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var orders []models.Order
@@ -166,6 +220,17 @@ func (s *APIServer) getOrderList() http.HandlerFunc {
 	}
 }
 
+// getBalance godoc
+//
+//	@Summary		Get balance
+//	@Description	get user balance
+//	@Tags			user
+//	@Produce		json
+//	@Success		200	{object}	models.Balance
+//	@Failure		401
+//	@Failure		500
+//	@Security		ApiKeyAuth
+//	@Router			/api/user/balance [get]
 func (s *APIServer) getBalance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var domenUser domenModels.User
@@ -189,6 +254,20 @@ func (s *APIServer) getBalance() http.HandlerFunc {
 	}
 }
 
+// createWithdraw godoc
+//
+//	@Summary		Create withdraw
+//	@Description	create user withdraw
+//	@Tags			user
+//	@Accept			json
+//	@Param			data	body	models.WithdrawIn	true	"User withdraw data"
+//	@Success		200
+//	@Failure		401
+//	@Failure		402
+//	@Failure		422
+//	@Failure		500
+//	@Security		ApiKeyAuth
+//	@Router			/api/user/balance/withdraw [post]
 func (s *APIServer) createWithdraw() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
@@ -229,6 +308,17 @@ func (s *APIServer) createWithdraw() http.HandlerFunc {
 	}
 }
 
+// getWithdrawals godoc
+//
+//	@Summary		Get withdraw list
+//	@Description	get user withdraw list
+//	@Tags			user
+//	@Produce		json
+//	@Success		200	{array}	models.WithdrawOut
+//	@Failure		401
+//	@Failure		500
+//	@Security		ApiKeyAuth
+//	@Router			/api/user/withdrawals [get]
 func (s *APIServer) getWithdrawals() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var withdrawals []models.WithdrawOut
@@ -265,6 +355,13 @@ func (s *APIServer) getOrderPaginateList() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {}
 }
 
+// ping godoc
+//
+//	@Summary		Get ping
+//	@Description	check service
+//	@Tags			tech
+//	@Success		200
+//	@Router			/ping [get]
 func (s *APIServer) ping() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := s.business.Ping(r.Context()); err != nil {

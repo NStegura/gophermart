@@ -34,6 +34,10 @@ migrate:
 rollbackmigrations:
 	goose -dir=internal/repo/internal/db/migrations postgres "host=localhost port=54323 user=usr password=psswrd dbname=gophermart sslmode=disable" reset
 
+.PHONY: swagger
+swagger: ## generate swagger files
+	swag fmt
+	swag init --parseDependency -g internal/app/gophermartapi/server.go
 
 ## LINTERS
 GOLANGCI_LINT_CACHE?=/tmp/praktikum-golangci-lint-cache
