@@ -27,8 +27,7 @@ services:
     working_dir: "$PWD"
     depends_on:
       - postgres
-    links:
-      - postgres
+      - accrual-api
     environment:
       RUN_ADDRESS: 'gophermart-api:8081'
       DATABASE_URI: 'postgres://usr:psswrd@postgres:5432/gophermart?sslmode=disable'

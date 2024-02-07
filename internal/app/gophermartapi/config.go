@@ -10,7 +10,7 @@ const (
 	defaultDatabaseDSN = ""
 	defaultLogLevel    = "debug"
 	defaultAccrualAddr = "accrual-api:8082"
-	defaultSecretKey   = "gljfsj;312sf;kdhrf;" // ?????? very bad
+	defaultSecretKey   = "gljfsj;312sf;kdhrf;" // only for tests
 )
 
 type Config struct {
