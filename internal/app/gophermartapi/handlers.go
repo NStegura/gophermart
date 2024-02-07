@@ -3,12 +3,11 @@ package gophermartapi
 import (
 	"encoding/json"
 	"errors"
+	"github.com/NStegura/gophermart/internal/app/gophermartapi/utils"
+	domenModels "github.com/NStegura/gophermart/internal/services/business/models"
 	"io"
 	"net/http"
 	"strconv"
-
-	"github.com/NStegura/gophermart/internal/app/gophermartapi/utils"
-	domenModels "github.com/NStegura/gophermart/internal/services/business/models"
 
 	"github.com/NStegura/gophermart/internal/app/gophermartapi/models"
 	"github.com/NStegura/gophermart/internal/customerrors"

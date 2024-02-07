@@ -32,6 +32,7 @@ services:
       RUN_ADDRESS: 'gophermart-api:8081'
       DATABASE_URI: 'postgres://usr:psswrd@postgres:5432/gophermart?sslmode=disable'
       ACCRUAL_SYSTEM_ADDRESS: 'accrual-api:8082'
+      TRACER_URL: 'http://jaeger:14268/api/traces'
       SECRET_KEY: 'gljfsj;312sf;kdhrf;'
       LOG_LEVEL: 'debug'
     networks:
@@ -48,6 +49,14 @@ services:
       POSTGRES_USER: 'usr'
       POSTGRES_PASSWORD: 'psswrd'
       POSTGRES_DB: 'gophermart'
+    networks:
+      - app-network
+
+  jaeger:
+    image: jaegertracing/all-in-one
+    ports:
+      - "14268:14268"
+      - "16686:16686"
     networks:
       - app-network
 

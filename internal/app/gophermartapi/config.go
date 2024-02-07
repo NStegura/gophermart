@@ -19,6 +19,7 @@ type Config struct {
 	SecretKey   string
 	LogLevel    string
 	AccrualAddr string
+	TracerURL   string
 }
 
 func NewConfig() *Config {
@@ -57,6 +58,10 @@ func (c *Config) ParseFlags() (err error) {
 
 	if sk, ok := os.LookupEnv("SECRET_KEY"); ok {
 		secretKey = sk
+	}
+
+	if tu, ok := os.LookupEnv("TRACER_URL"); ok {
+		c.TracerURL = tu
 	}
 
 	flag.StringVar(&c.RunAddress, "a", runAddress, "address and port to run server")

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
 
@@ -37,7 +39,7 @@ func New(
 		}
 	}
 	return &Client{
-		client:    &http.Client{},
+		client:    &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)},
 		URL:       addr,
 		logger:    logger,
 		semaphore: semaphore.NewWeighted(1),
@@ -56,13 +58,7 @@ func (c *Client) GetOrder(ctx context.Context, number int64) (models.OrderAccrua
 
 	reqURL := fmt.Sprintf("%s/api/orders/%v", c.URL, number)
 	c.logger.Infof("Get order From accrual client, %s", reqURL)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
-	if err != nil {
-		c.logger.Error(err)
-		return orderAccrual, fmt.Errorf("failed to make request: %w", err)
-	}
-
-	resp, err := c.client.Do(req)
+	resp, err := otelhttp.Get(ctx, reqURL)
 	if err != nil {
 		c.logger.Error("Can't get resp orderAccrual")
 		return orderAccrual, fmt.Errorf("failed to get resp orderAccrual: %w", err)

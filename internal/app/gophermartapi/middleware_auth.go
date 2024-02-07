@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ctxUserID struct{}
@@ -22,12 +26,16 @@ func (s *APIServer) authMiddleware(h http.Handler) http.Handler {
 		}
 
 		userID, err := s.auth.ParseToken(authH)
-
 		if err != nil {
 			s.logger.Debugf("ParseToken failed: %s", err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
+		span := trace.SpanFromContext(r.Context())
+		span.SetAttributes(
+			attribute.Key("userID").String(strconv.FormatInt(userID, 10)),
+		)
+
 		ctx := context.WithValue(r.Context(), ctxUserID{}, userID)
 		s.logger.Debugf("Authorize USER.ID=%v", userID)
 		h.ServeHTTP(w, r.WithContext(ctx))

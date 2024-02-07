@@ -3,7 +3,6 @@ package gophermartapi
 import (
 	"encoding/json"
 	"fmt"
-
 	"net/http"
 	"time"
 
@@ -62,6 +61,7 @@ func (s *APIServer) Start() error {
 }
 
 func (s *APIServer) configRouter() {
+	s.router.Use(s.tracingMiddleware)
 	s.router.Use(middleware.RequestID)
 	s.router.Use(middleware.Logger)
 	s.router.Use(middleware.Recoverer)

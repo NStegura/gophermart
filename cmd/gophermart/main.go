@@ -11,10 +11,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/NStegura/gophermart/internal/monitoring/logger"
+	"github.com/NStegura/gophermart/internal/monitoring/tracer"
+
 	"github.com/NStegura/gophermart/internal/clients/accrual"
 	"github.com/NStegura/gophermart/internal/services/jobs/accrualsync"
-
-	"github.com/sirupsen/logrus"
 
 	"github.com/NStegura/gophermart/internal/app/gophermartapi"
 	"github.com/NStegura/gophermart/internal/repo"
@@ -26,21 +27,10 @@ const (
 	timeoutShutdown = time.Second * 10
 	rateLimit       = 5
 	frequency       = time.Duration(15) * time.Second
+	serviceName     = "Gophermart"
 )
 
-func configureLogger(config *gophermartapi.Config) (*logrus.Logger, error) {
-	logger := logrus.New()
-	logger.Formatter = &logrus.TextFormatter{FullTimestamp: true}
-	level, err := logrus.ParseLevel(config.LogLevel)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse log level: %w", err)
-	}
-
-	logger.SetLevel(level)
-	return logger, nil
-}
-
-func runRest() error {
+func runApp() error {
 	ctx, cancelCtx := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancelCtx()
 
@@ -49,15 +39,20 @@ func runRest() error {
 	if err != nil {
 		return fmt.Errorf("failed to parse config: %w", err)
 	}
-	logger, err := configureLogger(config)
+	logg, err := logger.Init(config.LogLevel)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to init logger: %w", err)
+	}
+
+	_, err = tracer.Init(config.TracerURL, serviceName)
+	if err != nil {
+		return fmt.Errorf("failed to init tracer: %w", err)
 	}
 
 	db, err := repo.New(
 		ctx,
 		config.DatabaseDSN,
-		logger,
+		logg,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create repo: %w", err)
@@ -74,7 +69,7 @@ func runRest() error {
 
 	wg.Add(1)
 	go func() {
-		defer logger.Info("closed DB")
+		defer logg.Info("closed DB")
 		defer wg.Done()
 		<-ctx.Done()
 
@@ -83,12 +78,12 @@ func runRest() error {
 
 	server := gophermartapi.New(
 		config.RunAddress,
-		business.New(db, logger),
-		auth.New(config.SecretKey, logger),
-		logger,
+		business.New(db, logg),
+		auth.New(config.SecretKey, logg),
+		logg,
 	)
 
-	accrualCli, err := accrual.New(config.AccrualAddr, logger)
+	accrualCli, err := accrual.New(config.AccrualAddr, logg)
 	if err != nil {
 		return fmt.Errorf("failed to init accrualCli: %w", err)
 	}
@@ -98,7 +93,7 @@ func runRest() error {
 		rateLimit,
 		db,
 		accrualCli,
-		logger,
+		logg,
 	)
 
 	componentsErrs := make(chan error, 1)
@@ -136,7 +131,7 @@ func runRest() error {
 }
 
 func main() {
-	if err := runRest(); err != nil {
+	if err := runApp(); err != nil {
 		log.Fatal(err)
 	}
 }
