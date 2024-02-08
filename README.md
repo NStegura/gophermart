@@ -10,6 +10,12 @@
 ### Swagger scheme
 ![](media/swagger.png)
 
+### Особенность
+Данный сервис использует для мониторинга трейсинг http://localhost:16686/.
+
+![](media/tracepipe.png)
+![](media/tracing.png)
+
 ### Структура кода
 - cmd/
     - accrual/accrual_linux_amd64 - запуск сервиса accrual

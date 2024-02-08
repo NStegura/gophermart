@@ -53,10 +53,14 @@ services:
       - app-network
 
   jaeger:
-    image: jaegertracing/all-in-one
+    image: jaegertracing/all-in-one:1.51
+    environment:
+      COLLECTOR_ZIPKIN_HOST_PORT: ':9411'
+      COLLECTOR_OTLP_ENABLED: 'true'
     ports:
       - "14268:14268"
       - "16686:16686"
+      - "4318:4318"
     networks:
       - app-network
 

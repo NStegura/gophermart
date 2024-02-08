@@ -3,6 +3,7 @@ module github.com/NStegura/gophermart
 go 1.21.3
 
 require (
+	github.com/exaring/otelpgx v0.5.3
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/jackc/pgx/v5 v5.5.2
