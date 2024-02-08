@@ -4,16 +4,17 @@ import (
 	"context"
 	"fmt"
 
+	jaegerPropagator "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/jaeger" //nolint:staticcheck //only for study project
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
-func Init(jaegerURL string, serviceName string) (trace.Tracer, error) {
-	exporter, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(jaegerURL)))
+func Init(ctx context.Context, jaegerURL string, serviceName string) (trace.Tracer, error) {
+	exporter, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(jaegerURL))
 	if err != nil {
 		return nil, fmt.Errorf("initialize exporter: %w", err)
 	}
@@ -23,6 +24,7 @@ func Init(jaegerURL string, serviceName string) (trace.Tracer, error) {
 		return nil, fmt.Errorf("initialize provider: %w", err)
 	}
 
+	otel.SetTextMapPropagator(jaegerPropagator.Jaeger{})
 	otel.SetTracerProvider(tp)
 
 	return tp.Tracer("main tracer"), nil

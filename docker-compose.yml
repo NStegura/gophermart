@@ -23,16 +23,16 @@ services:
     command: tail -f /dev/null
     restart: on-failure
     ports:
-      - '8081:8081'
+      - '8081:8082'
     working_dir: "$PWD"
     depends_on:
       - postgres
       - accrual-api
     environment:
-      RUN_ADDRESS: 'gophermart-api:8081'
+      RUN_ADDRESS: 'gophermart-api:8082'
       DATABASE_URI: 'postgres://usr:psswrd@postgres:5432/gophermart?sslmode=disable'
       ACCRUAL_SYSTEM_ADDRESS: 'accrual-api:8082'
-      TRACER_URL: 'http://jaeger:14268/api/traces'
+      TRACER_URL: 'http://jaeger:4318/v1/traces'
       SECRET_KEY: 'gljfsj;312sf;kdhrf;'
       LOG_LEVEL: 'debug'
     networks:
@@ -53,14 +53,20 @@ services:
       - app-network
 
   jaeger:
-    image: jaegertracing/all-in-one:1.51
+    image: jaegertracing/all-in-one:latest
     environment:
-      COLLECTOR_ZIPKIN_HOST_PORT: ':9411'
       COLLECTOR_OTLP_ENABLED: 'true'
     ports:
-      - "14268:14268"
-      - "16686:16686"
-      - "4318:4318"
+      - "5775:5775/udp" # agent accept zipkin.thrift over compact thrift protocol (deprecated, used by legacy clients only)
+      - "6831:6831/udp" # agent accept jaeger.thrift over compact thrift protocol
+      - "6832:6832/udp" # agent accept jaeger.thrift over binary thrift protocol
+      - "5778:5778" # agent serve configs
+      - "16686:16686" # query serve frontend (Jaeger UI)
+      - "14268:14268" # collector accept jaeger.thrift directly from clients
+      - "14250:14250" # collector accept model.proto
+      - "9411:9411" # collector Zipkin compatible endpoint (optional)
+      - "4317:4317" # OTLP collector grpc
+      - "4318:4318" # OTLP collector http
     networks:
       - app-network
 

@@ -44,7 +44,7 @@ func runApp() error {
 		return fmt.Errorf("failed to init logger: %w", err)
 	}
 
-	_, err = tracer.Init(config.TracerURL, serviceName)
+	_, err = tracer.Init(ctx, config.TracerURL, serviceName)
 	if err != nil {
 		return fmt.Errorf("failed to init tracer: %w", err)
 	}
