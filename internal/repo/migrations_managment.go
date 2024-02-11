@@ -3,7 +3,6 @@ package repo
 import (
 	"embed"
 	"fmt"
-
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 )
@@ -11,7 +10,7 @@ import (
 //go:embed migrations/*.sql
 var embedMigrations embed.FS
 
-func (db *DB) RunMigrations() error {
+func (db *DB) runMigrations() error {
 	goose.SetBaseFS(embedMigrations)
 
 	if err := goose.SetDialect(string(goose.DialectPostgres)); err != nil {

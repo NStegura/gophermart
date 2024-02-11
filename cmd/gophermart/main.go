@@ -58,10 +58,6 @@ func runApp() error {
 		return fmt.Errorf("failed to create repo: %w", err)
 	}
 
-	if err = db.RunMigrations(); err != nil {
-		return fmt.Errorf("failed to migrate db: %w", err)
-	}
-
 	wg := &sync.WaitGroup{}
 	defer func() {
 		wg.Wait()

@@ -32,10 +32,17 @@ func New(ctx context.Context, dsn string, logger *logrus.Logger) (*DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a connection pool: %w", err)
 	}
-	return &DB{
+
+	db := DB{
 		pool:   pool,
 		logger: logger,
-	}, nil
+	}
+
+	if err = db.runMigrations(); err != nil {
+		return nil, fmt.Errorf("failed to migrate db: %w", err)
+	}
+
+	return &db, nil
 }
 
 func (db *DB) Shutdown(_ context.Context) {
