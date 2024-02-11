@@ -9,12 +9,12 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/semaphore"
 
 	"github.com/NStegura/gophermart/internal/clients/accrual/models"
 )
@@ -24,7 +24,7 @@ type Client struct {
 	logger *logrus.Logger
 	URL    string
 
-	semaphore *semaphore.Weighted
+	isAvailable atomic.Bool
 }
 
 func New(
@@ -38,22 +38,20 @@ func New(
 			return nil, fmt.Errorf("failed to init client, %w", err)
 		}
 	}
-	return &Client{
-		client:    &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)},
-		URL:       addr,
-		logger:    logger,
-		semaphore: semaphore.NewWeighted(1),
-	}, nil
+	cli := Client{
+		client: &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)},
+		URL:    addr,
+		logger: logger,
+	}
+	cli.isAvailable.Store(true)
+	return &cli, nil
 }
 
 func (c *Client) GetOrder(ctx context.Context, number int64) (models.OrderAccrual, error) {
 	var orderAccrual models.OrderAccrual
 
-	ok := c.semaphore.TryAcquire(1)
-	if !ok {
+	if !c.isAvailable.Load() {
 		return orderAccrual, ErrClientSemaphore
-	} else {
-		c.semaphore.Release(1)
 	}
 
 	reqURL := fmt.Sprintf("%s/api/orders/%v", c.URL, number)
@@ -103,13 +101,11 @@ func (c *Client) GetOrder(ctx context.Context, number int64) (models.OrderAccrua
 		}
 
 		go func(wait time.Duration) {
-			if err = c.semaphore.Acquire(ctx, 1); err != nil {
-				c.logger.Error("failed to Acquire semaphore")
-				return
-			}
-			c.logger.Debugf("keep semaphore closed for %s seconds", wait)
+			c.isAvailable.Store(false)
+			c.logger.Debugf("keep client closed for %s seconds", wait)
 			time.Sleep(wait)
-			c.semaphore.Release(1)
+			c.isAvailable.Store(true)
+			c.logger.Debugf("open client")
 		}(time.Duration(retryAfter) * time.Second)
 
 		return orderAccrual, ErrTooManyRequests
