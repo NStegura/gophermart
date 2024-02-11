@@ -61,7 +61,7 @@ func (db *DB) Ping(ctx context.Context) error {
 
 func (db *DB) GetUserByLogin(ctx context.Context, tx pgx.Tx, login string) (u models.User, err error) {
 	const query = `
-		SELECT u.id, u.login, u.password, u.salt, u.balance, u.withdrawn, u.created_at
+		SELECT u.id, u.login, u.password, u.balance, u.withdrawn, u.created_at
 		FROM "user" u
 		WHERE u.login = $1; 
 	`
@@ -69,7 +69,6 @@ func (db *DB) GetUserByLogin(ctx context.Context, tx pgx.Tx, login string) (u mo
 		&u.ID,
 		&u.Login,
 		&u.Password,
-		&u.Salt,
 		&u.Balance,
 		&u.Withdrawn,
 		&u.CreatedAt,
@@ -89,14 +88,14 @@ func (db *DB) GetUserByID(ctx context.Context, tx pgx.Tx, id int64, forUpdate bo
 	var query string
 	if forUpdate {
 		query = `
-		SELECT u.id, u.login, u.password, u.salt, u.balance, u.withdrawn, u.created_at
+		SELECT u.id, u.login, u.password, u.balance, u.withdrawn, u.created_at
 		FROM "user" u
 		WHERE u.id = $1
 		FOR UPDATE; 
 	`
 	} else {
 		query = `
-		SELECT u.id, u.login, u.password, u.salt, u.balance, u.withdrawn, u.created_at
+		SELECT u.id, u.login, u.password, u.balance, u.withdrawn, u.created_at
 		FROM "user" u
 		WHERE u.id = $1; 
 	`
@@ -106,7 +105,6 @@ func (db *DB) GetUserByID(ctx context.Context, tx pgx.Tx, id int64, forUpdate bo
 		&u.ID,
 		&u.Login,
 		&u.Password,
-		&u.Salt,
 		&u.Balance,
 		&u.Withdrawn,
 		&u.CreatedAt,
@@ -122,15 +120,15 @@ func (db *DB) GetUserByID(ctx context.Context, tx pgx.Tx, id int64, forUpdate bo
 	return u, nil
 }
 
-func (db *DB) CreateUser(ctx context.Context, tx pgx.Tx, login, password, salt string) (id int64, err error) {
+func (db *DB) CreateUser(ctx context.Context, tx pgx.Tx, login, password string) (id int64, err error) {
 	const query = `
-		INSERT INTO "user" (login, password, salt)
-		VALUES ($1, $2, $3)
+		INSERT INTO "user" (login, password)
+		VALUES ($1, $2)
 		RETURNING  "user".id; 
 	`
 
 	err = tx.QueryRow(ctx, query,
-		login, password, salt,
+		login, password,
 	).Scan(&id)
 
 	if err != nil {

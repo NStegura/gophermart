@@ -11,7 +11,7 @@ import (
 type Repository interface {
 	Ping(ctx context.Context) error
 
-	CreateUser(ctx context.Context, tx pgx.Tx, login, password, salt string) (id int64, err error)
+	CreateUser(ctx context.Context, tx pgx.Tx, login, password string) (id int64, err error)
 	GetUserByLogin(ctx context.Context, tx pgx.Tx, login string) (u models.User, err error)
 	GetUserByID(ctx context.Context, tx pgx.Tx, ID int64, forUpdate bool) (u models.User, err error)
 	UpdateUserBalance(ctx context.Context, tx pgx.Tx, userID int64, balance, withdrawn float64) (err error)

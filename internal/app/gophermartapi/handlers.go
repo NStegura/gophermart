@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	complexityAlgorithm int64 = 30
+	complexityAlgorithm int = 14
 )
 
 // register godoc
@@ -41,10 +41,14 @@ func (s *APIServer) register() http.HandlerFunc {
 			return
 		}
 
-		salt := s.auth.GenerateUserSalt(complexityAlgorithm)
-		newPass := s.auth.GeneratePasswordHash(inputUser.Password, salt)
+		newPass, err := s.auth.GeneratePasswordHash(inputUser.Password, complexityAlgorithm)
+		if err != nil {
+			s.logger.Error(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-		uID, err := s.business.CreateUser(r.Context(), inputUser.Login, newPass, salt)
+		uID, err := s.business.CreateUser(r.Context(), inputUser.Login, newPass)
 		if err != nil {
 			if errors.Is(err, customerrors.ErrAlreadyExists) {
 				w.WriteHeader(http.StatusConflict)
@@ -96,7 +100,7 @@ func (s *APIServer) login() http.HandlerFunc {
 			}
 		}
 
-		if dbUser.Password != s.auth.GeneratePasswordHash(inputUser.Password, dbUser.Salt) {
+		if !s.auth.CheckPasswordHash(inputUser.Password, dbUser.Password) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}

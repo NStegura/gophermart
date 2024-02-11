@@ -1,11 +1,11 @@
 package auth
 
 import (
-	"crypto/sha1"
 	"errors"
 	"fmt"
-	"math/rand"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/sirupsen/logrus"
 
@@ -73,24 +73,15 @@ func (s *Service) ParseToken(accessToken string) (int64, error) {
 	return 0, errors.New("token claims are not of type *tokenClaims or not valid")
 }
 
-func (s *Service) GenerateUserSalt(complexity int64) string {
-	digits := "0123456789"
-	specials := "~=+%^*/()[]{}/!@#$?|"
-	all := "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-		"abcdefghijklmnopqrstuvwxyz" +
-		digits + specials
-
-	set := []byte(all)
-	salt := make([]byte, complexity)
-	for i := range salt {
-		salt[i] = set[rand.Intn(len(set))]
+func (s *Service) GeneratePasswordHash(password string, complexity int) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), complexity)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate password, %w", err)
 	}
-	return string(salt)
+	return string(bytes), nil
 }
 
-func (s *Service) GeneratePasswordHash(password string, salt string) string {
-	hash := sha1.New()
-	hash.Write([]byte(password))
-
-	return fmt.Sprintf("%x", hash.Sum([]byte(salt)))
+func (s *Service) CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }

@@ -30,7 +30,7 @@ func (b *Business) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (b *Business) CreateUser(ctx context.Context, login, password, salt string) (id int64, err error) {
+func (b *Business) CreateUser(ctx context.Context, login, password string) (id int64, err error) {
 	tx, err := b.repo.OpenTransaction(ctx)
 	if err != nil {
 		return id, fmt.Errorf("failed to open transaction, %w", err)
@@ -42,7 +42,7 @@ func (b *Business) CreateUser(ctx context.Context, login, password, salt string)
 	_, err = b.repo.GetUserByLogin(ctx, tx, login)
 	if err != nil {
 		if errors.Is(err, customerrors.ErrNotFound) {
-			id, err = b.repo.CreateUser(ctx, tx, login, password, salt)
+			id, err = b.repo.CreateUser(ctx, tx, login, password)
 			if err != nil {
 				return id, fmt.Errorf("failed to create user, %w", err)
 			}

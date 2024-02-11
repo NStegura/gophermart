@@ -6,7 +6,6 @@ type User struct {
 	ID        int64
 	Login     string
 	Password  string
-	Salt      string
 	Balance   float64
 	Withdrawn float64
 	CreatedAt time.Time
