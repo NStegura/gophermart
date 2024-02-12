@@ -39,6 +39,26 @@ swagger: ## generate swagger files
 	swag fmt
 	swag init --parseDependency -g internal/app/gophermartapi/server.go
 
+## TESTS
+
+MOCKS_DESTINATION=mocks
+.PHONY: mocks
+# put the files with interfaces you'd like to mock in prerequisites
+# wildcards are allowed
+mocks: ./internal/app/gophermartapi/iauth.go \
+       ./internal/app/gophermartapi/ibusiness.go \
+       ./internal/services/business/irepository.go \
+       ./internal/services/jobs/accrualsync/irepository.go \
+       ./internal/services/jobs/accrualsync/iaccrualcli.go
+	@echo "Generating mocks..."
+	@rm -rf $(MOCKS_DESTINATION)
+	@for file in $^; do mockgen -source=$$file -destination=$(MOCKS_DESTINATION)/$$file; done
+
+.PHONY: test
+test:
+	go install gotest.tools/gotestsum@latest
+	gotestsum --format pkgname -- -coverprofile=cover.out ./...
+
 ## LINTERS
 GOLANGCI_LINT_CACHE?=/tmp/praktikum-golangci-lint-cache
 

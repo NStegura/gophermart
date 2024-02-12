@@ -23,7 +23,7 @@ type Job struct {
 	rateLimit int
 
 	repo       Repository
-	accrualCli *accrual.Client
+	accrualCli AccrualCli
 	logger     *logrus.Logger
 }
 

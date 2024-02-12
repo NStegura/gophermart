@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/NStegura/gophermart/internal/clients"
+
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/sirupsen/logrus"
@@ -20,11 +22,12 @@ import (
 )
 
 type Client struct {
-	client *http.Client
+	client clients.HTTPClient
 	logger *logrus.Logger
 	URL    string
 
-	isAvailable atomic.Bool
+	isAvailable    atomic.Bool
+	collectMetrics bool
 }
 
 func New(
@@ -39,9 +42,10 @@ func New(
 		}
 	}
 	cli := Client{
-		client: &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)},
-		URL:    addr,
-		logger: logger,
+		client:         &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)},
+		URL:            addr,
+		logger:         logger,
+		collectMetrics: true,
 	}
 	cli.isAvailable.Store(true)
 	return &cli, nil
@@ -56,7 +60,7 @@ func (c *Client) GetOrder(ctx context.Context, number int64) (models.OrderAccrua
 
 	reqURL := fmt.Sprintf("%s/api/orders/%v", c.URL, number)
 	c.logger.Infof("Get order From accrual client, %s", reqURL)
-	resp, err := otelhttp.Get(ctx, reqURL)
+	resp, err := c.Get(ctx, reqURL)
 	if err != nil {
 		c.logger.Error("Can't get resp orderAccrual")
 		return orderAccrual, fmt.Errorf("failed to get resp orderAccrual: %w", err)
@@ -111,4 +115,16 @@ func (c *Client) GetOrder(ctx context.Context, number int64) (models.OrderAccrua
 		return orderAccrual, ErrTooManyRequests
 	}
 	return orderAccrual, nil
+}
+
+func (c *Client) Get(ctx context.Context, reqURL string) (resp *http.Response, err error) {
+	if c.collectMetrics {
+		resp, err = otelhttp.Get(ctx, reqURL)
+	} else {
+		resp, err = c.client.Get(reqURL)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get responce from accrual, %w", err)
+	}
+	return resp, nil
 }
